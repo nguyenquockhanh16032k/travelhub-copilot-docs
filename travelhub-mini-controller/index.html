@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TravelHub · Docker Control</title>
+<style>
+:root{font-family:system-ui,Segoe UI,Arial,sans-serif;color-scheme:dark;background:#0c1423;color:#ecf2fb}
+*{box-sizing:border-box}body{margin:0}header{padding:28px max(20px,calc((100% - 1100px)/2));background:linear-gradient(110deg,#1d3555,#131f33)}
+h1{font-size:32px;margin:0 0 8px}h2{font-size:19px;margin:0 0 14px}p{color:#b6c6dc;line-height:1.55}
+main{max-width:1100px;margin:20px auto;padding:0 16px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{background:#172337;border:1px solid #34435b;padding:20px;border-radius:14px;min-width:0}.wide{grid-column:1/-1}
+button{border:0;border-radius:9px;background:#2e73cd;color:white;font-weight:650;padding:12px 15px;cursor:pointer;margin:4px}
+button:hover{filter:brightness(1.15)}button.stop{background:#ad3e4a}button.safe{background:#227b62}button.dim{background:#43546c}
+small,.hint{color:#a0b5cc}.url{padding:12px;min-height:44px;background:#101a2c;border:1px solid #354a68;border-radius:9px;overflow-wrap:anywhere}
+a{color:#83c4ff}.warning{padding:13px;border-left:4px solid #edb15b;background:#353039;border-radius:7px}
+pre{background:#0a1423;padding:15px;border-radius:9px;overflow:auto;max-height:350px;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 Consolas,monospace}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style></head>
+<body><header><h1>TravelHub · Docker Control</h1><p>Build · Check · Public · Stop — bấm nút trên PC Windows + Ubuntu WSL2</p><small>Local only: http://localhost:8765 · không xóa PostgreSQL volume</small></header>
+<main><p class="warning"><b>Quan trọng:</b> Dashboard có quyền chạy Docker. Không chia sẻ cổng 8765 lên Internet. Dùng dữ liệu thử nghiệm, backup database và xác minh OTP Cloudflare trước khi gửi link Public.</p>
+<div class="grid">
+<section class="card"><h2>1 · Build Local</h2><p>Vue User + Vue Admin dạng dev, FastAPI, PostgreSQL.</p><button onclick="act('local-start')">▶ Build & Run Local</button><button class="stop" onclick="act('local-stop')">■ Stop Local UI</button><p><a href="http://localhost:5173" target="_blank" rel="noopener noreferrer">User :5173</a> · <a href="http://localhost:5174" target="_blank" rel="noopener noreferrer">Admin :5174</a></p></section>
+<section class="card"><h2>2 · Build Public</h2><p>Nginx static build User/Admin và API cùng origin.</p><button onclick="act('public-start')">▶ Build & Run Public</button><button class="stop" onclick="act('public-stop')">■ Stop Public</button><p class="hint">Nginx: public-web:8080 và admin-web:8081</p></section>
+<section class="card"><h2>3 · Cloudflare · User</h2><p>Quick Tunnel với OTP cho email <b>__EMAIL__</b>.</p><button class="safe" onclick="tun('user','start')">🌐 Public User</button><button class="stop" onclick="tun('user','stop')">■ Stop Tunnel</button><div class="url" id="user-url">Chưa có URL</div><small id="user-info"></small></section>
+<section class="card"><h2>4 · Cloudflare · Admin</h2><p>URL riêng. OTP Cloudflare không thay thế đăng nhập SUPER_ADMIN.</p><button class="safe" onclick="tun('admin','start')">🌐 Public Admin</button><button class="stop" onclick="tun('admin','stop')">■ Stop Tunnel</button><div class="url" id="admin-url">Chưa có URL</div><small id="admin-info"></small></section>
+<section class="card wide"><h2>5 · Check / Backup / Stop All</h2><button class="dim" onclick="act('check')">✓ Kiểm tra Docker + HTML + API</button><button class="dim" onclick="act('backup')">💾 Backup PostgreSQL</button><button class="stop" onclick="stopAll()">⏹ Stop All App</button><p class="hint">Stop All không chạy docker down -v. Nếu API trả về 500, xem log backend và migrations trước khi public.</p></section>
+<section class="card wide"><h2>6 · Kết quả & Logs</h2><button class="dim" onclick="refresh()">↻ Refresh</button><p id="feedback">Sẵn sàng.</p><pre id="result">Chưa có lệnh nào được chạy.</pre><small>Nếu Tunnel không yêu cầu OTP hoặc không hỗ trợ --allowed-mail, hãy dừng Tunnel ngay. Chỉ chia sẻ link sau khi test từ điện thoại 4G/5G và kiểm tra email không được phép.</small></section>
+</div></main>
+<script>
+const TOKEN='__TOKEN__';
+let prev='';
+const feedback=document.getElementById('feedback'),result=document.getElementById('result');
+async function post(path){const r=await fetch(path,{method:'POST',headers:{'X-TravelHub-Token':TOKEN}});const d=await r.json();if(!r.ok)throw Error(d.error||'Lỗi');return d}
+async function act(name){try{const x=await post('/api/action/'+name);feedback.textContent=x.message;await refresh()}catch(e){feedback.textContent='Lỗi: '+e.message}}
+async function tun(which,verb){try{const x=await post('/api/tunnel/'+which+'/'+verb);feedback.textContent=x.message;await refresh()}catch(e){feedback.textContent='Lỗi: '+e.message}}
+function stopAll(){if(confirm('Dừng toàn bộ container TravelHub, gồm PostgreSQL? Dữ liệu volume không bị xóa.'))act('stop-all')}
+async function refresh(){
+ try{
+  const r=await fetch('/api/status',{cache:'no-store'}),s=await r.json();
+  if(s.job){const id=s.job.name+s.job.state+s.job.message;if(prev!==id){prev=id;feedback.textContent=s.job.name+' — '+s.job.state;result.textContent=s.job.message}}
+  for(const n of ['user','admin']){
+   const t=s.tunnels[n],box=document.getElementById(n+'-url'),info=document.getElementById(n+'-info');
+   box.replaceChildren();
+   if(t.running&&t.url){const a=document.createElement('a');a.href=t.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=t.url;box.append(a)}
+   else box.textContent=t.running?'Đang kết nối...':'Chưa có URL hoạt động';
+   info.textContent=(t.running?'● Running':'○ Stopped')+' · '+(t.log||'').slice(-220)
+  }
+ }catch(e){feedback.textContent='Server: '+e.message}
+}
+refresh();setInterval(refresh,3500);
+</script></body></html>
