@@ -172,3 +172,7 @@ The Admin application provides:
 
 Frontend route guards improve navigation usability but are not a security boundary.
 All mutations remain authorized by the FastAPI backend.
+
+## Chạy Website qua Cloudflare Tunnel trên PC
+
+Xem [hướng dẫn Cloudflare Tunnel trên PC](./docs/14_PC_CLOUDFLARE_TUNNEL.md). Cấu hình chỉ public website User và bảo vệ bằng Cloudflare Access trong giai đoạn thử nghiệm; không mở Admin hay PostgreSQL ra Internet.
