@@ -88,6 +88,7 @@ def read_articles(
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
     search: str | None = Query(default=None, max_length=255),
+    category_id: UUID | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> ArticlePage:
     items, total, pages = list_articles(
@@ -96,6 +97,7 @@ def read_articles(
         size,
         search,
         published_only=True,
+        category_id=category_id,
     )
     return ArticlePage(
         items=[ArticleResponse.model_validate(item) for item in items],
