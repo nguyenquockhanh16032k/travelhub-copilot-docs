@@ -68,3 +68,32 @@ jobs:
       - name: Clean up isolated stack
         if: always()
         run: docker compose --project-name travelhub-ci -f docker-compose.test.yml down
+
+  pc-tunnel-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate PC Cloudflare compose overlay and port bindings
+        run: |
+          cp .env.example .env
+          cp .env.tunnel.example .env.tunnel
+          docker compose -f docker-compose.yml -f docker-compose.pc-tunnel.yml config --quiet
+          python3 - <<'PY'
+          import json, subprocess
+          content = subprocess.check_output([
+            "docker", "compose", "-f", "docker-compose.yml",
+            "-f", "docker-compose.pc-tunnel.yml", "config", "--format", "json"
+          ])
+          services = json.loads(content)["services"]
+          for name in ("public-web", "cloudflared"):
+              assert not services[name].get("ports"), name + " must not publish any host ports"
+          for name in ("db", "backend", "admin", "user"):
+              for item in services[name].get("ports", []):
+                  assert item.get("host_ip") == "127.0.0.1", (name, item)
+          assert services["backend"]["environment"]["ENVIRONMENT"] == "production"
+          PY
+      - name: Validate Nginx config syntax
+        run: |
+          docker run --rm --add-host backend:127.0.0.1 -v "$PWD/deploy/nginx/pc-tunnel.conf:/etc/nginx/conf.d/default.conf:ro" nginx:stable-alpine nginx -t
+      - name: Build static public web edge
+        run: docker build -f deploy/Dockerfile.pc-tunnel -t travelhub-pc-edge:ci .
