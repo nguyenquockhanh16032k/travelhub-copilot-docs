@@ -67,12 +67,16 @@ def list_articles(
     size: int,
     search: str | None,
     published_only: bool,
+    category_id: UUID | None = None,
 ) -> tuple[list[Article], int, int]:
     query = select(Article).options(selectinload(Article.category))
     count_query = select(func.count(Article.id))
     if published_only:
         query = query.where(Article.status == "published")
         count_query = count_query.where(Article.status == "published")
+    if category_id is not None:
+        query = query.where(Article.category_id == category_id)
+        count_query = count_query.where(Article.category_id == category_id)
     if search:
         pattern = f"%{search.strip()}%"
         filter_clause = or_(Article.title.ilike(pattern), Article.slug.ilike(pattern))
