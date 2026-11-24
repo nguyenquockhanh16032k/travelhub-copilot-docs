@@ -1,0 +1,27 @@
+FROM node:22-alpine AS user-build
+
+WORKDIR /app
+COPY frontend-user/package*.json ./
+RUN npm ci
+COPY frontend-user/ ./
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+RUN npm run build
+
+FROM node:22-alpine AS admin-build
+
+WORKDIR /app
+COPY frontend-admin/package*.json ./
+RUN npm ci
+COPY frontend-admin/ ./
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+RUN npm run build
+
+FROM nginx:stable-alpine
+
+COPY deploy/nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=user-build /app/dist /usr/share/nginx/user
+COPY --from=admin-build /app/dist /usr/share/nginx/admin
+
+EXPOSE 80 443

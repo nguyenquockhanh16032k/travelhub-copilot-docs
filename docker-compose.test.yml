@@ -1,0 +1,45 @@
+services:
+  test-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: travelhub_integration_test
+      POSTGRES_USER: travelhub_test
+      POSTGRES_PASSWORD: local_test_only
+    tmpfs:
+      - /var/lib/postgresql/data
+    networks:
+      - test
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\"",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  test-runner:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://travelhub_test:local_test_only@test-db:5432/travelhub_integration_test
+      TEST_DATABASE_URL: postgresql+psycopg://travelhub_test:local_test_only@test-db:5432/travelhub_integration_test
+    volumes:
+      - ./backend:/app
+    depends_on:
+      test-db:
+        condition: service_healthy
+    command:
+      [
+        "sh",
+        "-c",
+        "alembic upgrade head && alembic downgrade 0007_articles_categories && alembic upgrade head && python -m pytest tests/test_postgres_booking_concurrency.py -q",
+      ]
+    networks:
+      - test
+
+networks:
+  test:
+    internal: true

@@ -1,0 +1,17 @@
+.git
+.env
+.env.*
+.env.production
+.venv
+**/.venv
+**/node_modules
+**/dist
+**/.vite
+**/.pytest_cache
+**/__pycache__
+**/*.py[cod]
+**/*.log
+backend
+database
+docs
+/deploy/certs
