@@ -1,0 +1,70 @@
+name: TravelHub Test Suite
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Run backend unit/API tests
+        working-directory: backend
+        env:
+          ENVIRONMENT: test
+          JWT_SECRET_KEY: ci-only-long-random-looking-not-a-real-secret-123456
+        run: python -m pytest -q
+
+  frontend-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend-admin/package-lock.json
+      - run: npm ci
+        working-directory: frontend-admin
+      - run: npm test
+        working-directory: frontend-admin
+      - run: npm run build
+        working-directory: frontend-admin
+
+  frontend-user:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend-user/package-lock.json
+      - run: npm ci
+        working-directory: frontend-user
+      - run: npm test
+        working-directory: frontend-user
+      - run: npm run build
+        working-directory: frontend-user
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run isolated PostgreSQL integration suite
+        run: docker compose --project-name travelhub-ci -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner
+      - name: Clean up isolated stack
+        if: always()
+        run: docker compose --project-name travelhub-ci -f docker-compose.test.yml down
