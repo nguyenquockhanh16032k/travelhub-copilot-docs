@@ -3,6 +3,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import ToursView from '../views/ToursView.vue'
 import TourDetailView from '../views/TourDetailView.vue'
+import ArticlesView from '../views/ArticlesView.vue'
+import ArticleDetailView from '../views/ArticleDetailView.vue'
 import BookingView from '../views/BookingView.vue'
 import BookingConfirmationView from '../views/BookingConfirmationView.vue'
 import CustomerLoginView from '../views/CustomerLoginView.vue'
@@ -15,6 +17,8 @@ const router = createRouter({
   routes: [
     { path: '/', component: HomeView },
     { path: '/tours', component: ToursView },
+    { path: '/articles', component: ArticlesView },
+    { path: '/articles/:slug', name: 'article-detail', component: ArticleDetailView },
     {
       path: '/tours/:tourId',
       name: 'tour-detail',
