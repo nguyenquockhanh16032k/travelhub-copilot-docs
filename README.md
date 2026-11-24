@@ -178,3 +178,5 @@ All mutations remain authorized by the FastAPI backend.
 ## Tour import/export (feature branch)
 
 The Admin Tours screen supports CSV/XLSX tour export, blank templates and a two-step preview/confirm import. Imports are create-only and draft-only; they never change existing tours, bookings or payments. See [Hướng dẫn Import/Export](./docs/12_IMPORT_EXPORT_USER_GUIDE.md) for the complete Vietnamese operator manual. Full tests/build are pending; do not enable in production before verification.
+
+Import/Export is pending PR-specific CI; see the pull request checks before merging.
