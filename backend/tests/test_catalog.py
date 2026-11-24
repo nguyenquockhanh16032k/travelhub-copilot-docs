@@ -14,7 +14,7 @@ from app.api.dependencies import get_current_user
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.models.identity import Role
+from app.models.identity import Role, User
 from app.models.tour import Tour, TourDeparture
 
 
@@ -64,6 +64,14 @@ def catalog_context(monkeypatch):
                 status="open",
             )
         )
+        operator = User(
+            email="bulk-editor@example.test",
+            password_hash="not-used",
+            is_active=True,
+        )
+        session.add(operator)
+        session.flush()
+        admin_id = operator.id
         session.commit()
         published_id = published.id
 
@@ -72,6 +80,7 @@ def catalog_context(monkeypatch):
             yield session
 
     admin = SimpleNamespace(
+        id=admin_id,
         roles=[Role(code="ADMIN", description="Administrator")]
     )
     app.dependency_overrides[get_db] = override_db
