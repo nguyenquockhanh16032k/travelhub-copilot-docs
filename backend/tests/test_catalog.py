@@ -14,7 +14,7 @@ from app.api.dependencies import get_current_user
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.models.identity import Role
+from app.models.identity import Role, User
 from app.models.tour import Tour, TourDeparture
 
 
@@ -64,6 +64,14 @@ def catalog_context(monkeypatch):
                 status="open",
             )
         )
+        operator = User(
+            email="bulk-editor@example.test",
+            password_hash="not-used",
+            is_active=True,
+        )
+        session.add(operator)
+        session.flush()
+        admin_id = operator.id
         session.commit()
         published_id = published.id
 
@@ -72,6 +80,7 @@ def catalog_context(monkeypatch):
             yield session
 
     admin = SimpleNamespace(
+        id=admin_id,
         roles=[Role(code="ADMIN", description="Administrator")]
     )
     app.dependency_overrides[get_db] = override_db
@@ -547,3 +556,76 @@ def test_search_expires_relevant_holds_without_releasing_active_holds(
         active = session.query(Booking).filter_by(reference="ACTIVE-HOLD").one()
         assert expired.status == "expired"
         assert active.status == "pending"
+
+
+def test_admin_tour_bulk_preview_import_and_export(catalog_context) -> None:
+    import io
+    import csv
+
+    client, _, _ = catalog_context
+    content = (
+        "title,slug,description,duration_days,destination\\n"
+        "New tour,new-tour,A new itinerary,3,Da Nang\\n"
+    ).replace("\\n", "\n").encode("utf-8")
+    upload = {"file": ("tours.csv", content, "text/csv")}
+
+    preview = client.post("/api/v1/admin/tours/bulk/import", params={"preview": "true"}, files=upload)
+    assert preview.status_code == 200
+    assert preview.json()["valid_rows"] == 1
+    assert preview.json()["created"] == 0
+
+    saved = client.post("/api/v1/admin/tours/bulk/import", params={"preview": "false"}, files=upload)
+    assert saved.status_code == 200
+    assert saved.json()["created"] == 1
+    item = next(item for item in client.get("/api/v1/admin/tours").json()["items"] if item["slug"] == "new-tour")
+    assert item["status"] == "draft"
+
+    duplicate = client.post("/api/v1/admin/tours/bulk/import", params={"preview": "false"}, files=upload)
+    assert duplicate.status_code == 200
+    assert duplicate.json()["error_rows"] == 1
+    assert duplicate.json()["created"] == 0
+
+    csv_export = client.get("/api/v1/admin/tours/bulk/export", params={"format": "csv"})
+    assert csv_export.status_code == 200
+    rows = list(csv.DictReader(io.StringIO(csv_export.content.decode("utf-8-sig"))))
+    assert "new-tour" in [row["slug"] for row in rows]
+
+    xlsx_export = client.get("/api/v1/admin/tours/bulk/export", params={"format": "xlsx"})
+    assert xlsx_export.status_code == 200
+    assert xlsx_export.content.startswith(b"PK")
+
+
+def test_tour_bulk_rejects_invalid_rows_without_partial_import(catalog_context) -> None:
+    client, _, _ = catalog_context
+    data = (
+        "title,slug,description,duration_days,destination\\n"
+        "Valid tour,another-tour,About,2,Hue\\n"
+        "Invalid tour,invalid-tour,About,0,Hue\\n"
+    ).replace("\\n", "\n").encode()
+    response = client.post(
+        "/api/v1/admin/tours/bulk/import",
+        params={"preview": "false"},
+        files={"file": ("tours.csv", data, "text/csv")},
+    )
+    assert response.status_code == 200
+    assert response.json()["error_rows"] == 1
+    assert response.json()["created"] == 0
+    assert "another-tour" not in [
+        item["slug"] for item in client.get("/api/v1/admin/tours").json()["items"]
+    ]
+
+
+def test_tour_bulk_permissions_and_file_size(catalog_context) -> None:
+    client, _, _ = catalog_context
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(
+        roles=[Role(code="STAFF", description="Staff")],
+    )
+    assert client.get("/api/v1/admin/tours/bulk/export").status_code == 200
+    assert client.post(
+        "/api/v1/admin/tours/bulk/import",
+        files={"file": ("tours.csv", b"title,slug,description,duration_days,destination", "text/csv")},
+    ).status_code == 403
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(
+        roles=[Role(code="CUSTOMER", description="Customer")],
+    )
+    assert client.get("/api/v1/admin/tours/bulk/export").status_code == 403

@@ -29,6 +29,8 @@ Project documentation and AI instructions for building TravelHub.
 | docs/09_DEVELOPMENT_ROADMAP.md | Implementation sequence |
 | docs/10_COPILOT_PROMPTS.md | Prompts for incremental generation |
 | docs/11_PRODUCTION_DEPLOYMENT.md | Future Linux VPS deployment guide |
+| docs/12_IMPORT_EXPORT_USER_GUIDE.md | Hướng dẫn Excel/CSV Tour |
+| docs/13_TRAVELHUB_USER_MANUAL_VI.md | Sổ tay sử dụng TravelHub bằng tiếng Việt |
 | .github/copilot-instructions.md | Persistent instructions for Copilot |
 | docker-compose.yml | Local development service orchestration |
 | .env.example | Environment variable template |
@@ -172,3 +174,9 @@ The Admin application provides:
 
 Frontend route guards improve navigation usability but are not a security boundary.
 All mutations remain authorized by the FastAPI backend.
+
+## Tour import/export (feature branch)
+
+The Admin Tours screen supports CSV/XLSX tour export, blank templates and a two-step preview/confirm import. Imports are create-only and draft-only; they never change existing tours, bookings or payments. See [Hướng dẫn Import/Export](./docs/12_IMPORT_EXPORT_USER_GUIDE.md) for the complete Vietnamese operator manual. Full tests/build are pending; do not enable in production before verification.
+
+Import/Export is pending PR-specific CI; see the pull request checks before merging.

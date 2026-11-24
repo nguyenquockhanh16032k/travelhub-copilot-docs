@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/auth'
 import { createTour, listTours, updateTour } from '../services/tours'
 import type { Tour, TourCreatePayload, TourStatus } from '../types/catalog'
 import { hasPermission } from '../utils/permissions'
+import TourBulkPanel from '../components/TourBulkPanel.vue'
 
 const auth = useAuthStore()
 const canManageTours = computed(() =>
@@ -124,6 +125,8 @@ onMounted(() => {
     <v-alert v-if="success" type="success" variant="tonal" class="mb-4">
       {{ success }}
     </v-alert>
+
+    <TourBulkPanel v-if="canManageTours" @imported="loadTours" />
 
     <v-text-field
       v-model="destinationFilter"
