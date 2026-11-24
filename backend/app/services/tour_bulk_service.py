@@ -5,11 +5,12 @@ departures, bookings or payments. Preview and commit use the same validation.
 """
 import csv
 import io
-import re
+import zipfile
 from collections import Counter
 from typing import Any
 
 from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Font
 from openpyxl.utils.exceptions import InvalidFileException
 from pydantic import ValidationError
 from sqlalchemy import select
@@ -51,7 +52,11 @@ def _parse_file(raw: bytes, filename: str) -> list[dict[str, str]]:
             reader = csv.reader(io.StringIO(text, newline=""), strict=True)
             rows = list(reader)
         elif filename.endswith(".xlsx"):
-            book = load_workbook(io.BytesIO(raw), read_only=True, data_only=False)
+            with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+                members = archive.infolist()
+                if len(members) > 150 or sum(item.file_size for item in members) > 8 * 1024 * 1024:
+                    raise BulkTourError("Excel file is too complex or too large when unpacked")
+            book = load_workbook(io.BytesIO(raw), read_only=True, data_only=False, keep_links=False)
             try:
                 if len(book.sheetnames) != 1:
                     raise BulkTourError("Use a workbook with exactly one sheet")
@@ -60,7 +65,7 @@ def _parse_file(raw: bytes, filename: str) -> list[dict[str, str]]:
                 book.close()
         else:
             raise BulkTourError("Only .csv and .xlsx files are supported")
-    except (UnicodeError, csv.Error, ValueError, InvalidFileException, OSError, KeyError) as exc:
+    except (UnicodeError, csv.Error, ValueError, InvalidFileException, OSError, KeyError, zipfile.BadZipFile) as exc:
         raise BulkTourError("Invalid or unreadable CSV/XLSX file") from exc
 
     if not rows:
@@ -183,7 +188,7 @@ def export_tours(db: Session, extension: str, template: bool = False) -> tuple[b
     for letter, width in {"A": 35, "B": 30, "C": 55, "D": 18, "E": 30}.items():
         sheet.column_dimensions[letter].width = width
     for cell in sheet[1]:
-        cell.font = cell.font.copy(bold=True)
+        cell.font = Font(bold=True)
     binary = io.BytesIO()
     workbook.save(binary)
     return binary.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
