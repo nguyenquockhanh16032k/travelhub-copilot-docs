@@ -31,6 +31,9 @@ Project documentation and AI instructions for building TravelHub.
 | docs/11_PRODUCTION_DEPLOYMENT.md | Future Linux VPS deployment guide |
 | docs/12_IMPORT_EXPORT_USER_GUIDE.md | Hướng dẫn Excel/CSV Tour |
 | docs/13_TRAVELHUB_USER_MANUAL_VI.md | Sổ tay sử dụng TravelHub bằng tiếng Việt |
+| docs/14_PC_CLOUDFLARE_TUNNEL.md | Named Tunnel cho website khách, yêu cầu domain |
+| docs/15_ADMIN_PROTECTED_QUICK_TUNNEL.md | Admin qua Quick Tunnel bảo vệ email |
+| docs/16_DEPLOY_OTHER_DEVICES_WSL_DOCKER.md | Checklist Docker build/test/deploy để truy cập từ thiết bị khác |
 | .github/copilot-instructions.md | Persistent instructions for Copilot |
 | docker-compose.yml | Local development service orchestration |
 | .env.example | Environment variable template |
@@ -181,6 +184,10 @@ The Admin Tours screen supports CSV/XLSX tour export, blank templates and a two-
 
 Import/Export is pending PR-specific CI; see the pull request checks before merging.
 
-## Public thử nghiệm qua Cloudflare Tunnel trên PC
+## Public thử nghiệm trên PC, truy cập bằng điện thoại/laptop khác
 
-Xem [hướng dẫn Cloudflare Tunnel](./docs/14_PC_CLOUDFLARE_TUNNEL.md). Chỉ Website User và same-origin API được công khai; Cloudflare Access phải bảo vệ hostname khi còn giai đoạn thử nghiệm. Không mở Admin hoặc PostgreSQL ra Internet.
+**Không cần sở hữu domain:** làm theo [hướng dẫn Docker build, smoke test và Cloudflare Quick Tunnel](./docs/16_DEPLOY_OTHER_DEVICES_WSL_DOCKER.md). User và Admin chạy Nginx riêng, Quick Tunnel riêng có giới hạn email; Admin vẫn cần đăng nhập và quyền `SUPER_ADMIN` trong TravelHub. Không mở port Vite/DB/backend cho Internet.
+
+**Có domain trên Cloudflare:** xem [hướng dẫn Named Tunnel](./docs/14_PC_CLOUDFLARE_TUNNEL.md). Không chạy named tunnel bằng `docker compose up cloudflared` nếu đang dùng Quick Tunnel.
+
+Đây là thử nghiệm, không phải production; giữ Cloudflare OTP, data test và backup PostgreSQL.
