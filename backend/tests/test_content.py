@@ -166,3 +166,37 @@ def test_content_management_requires_staff_role(content_context) -> None:
         "/api/v1/categories",
         json={"name": "Forbidden", "slug": "forbidden"},
     ).status_code == 403
+
+
+def test_public_article_category_filter_is_scoped_and_hides_drafts(content_context) -> None:
+    client, _ = content_context
+    first = client.post("/api/v1/categories", json={"name": "Guides", "slug": "guides"})
+    second = client.post("/api/v1/categories", json={"name": "News", "slug": "news"})
+    assert first.status_code == 201 and second.status_code == 201
+    guide_id, news_id = first.json()["id"], second.json()["id"]
+
+    for slug, category_id, status_value in (
+        ("guide-published", guide_id, "published"),
+        ("news-published", news_id, "published"),
+        ("guide-draft", guide_id, "draft"),
+    ):
+        response = client.post("/api/v1/articles", json={
+            "title": slug,
+            "slug": slug,
+            "body": "Article text",
+            "category_id": category_id,
+            "status": status_value,
+        })
+        assert response.status_code == 201
+
+    guide_result = client.get("/api/v1/articles", params={"category_id": guide_id})
+    assert guide_result.status_code == 200
+    assert guide_result.json()["total"] == 1
+    assert [item["slug"] for item in guide_result.json()["items"]] == ["guide-published"]
+
+    news_result = client.get("/api/v1/articles", params={"category_id": news_id})
+    assert news_result.json()["total"] == 1
+
+    bad_category = client.get("/api/v1/articles", params={"category_id": "invalid"})
+    assert bad_category.status_code == 422
+    assert client.get("/api/v1/articles/guide-draft").status_code == 404

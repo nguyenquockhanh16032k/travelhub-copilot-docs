@@ -42,6 +42,7 @@ async function signOut(): Promise<void> {
         <v-spacer />
         <v-btn to="/" variant="text">Home</v-btn>
         <v-btn to="/tours" variant="text">Explore tours</v-btn>
+        <v-btn to="/articles" variant="text">Travel blog</v-btn>
         <v-btn v-if="auth.user" to="/my/bookings" variant="text">
           My bookings
         </v-btn>
