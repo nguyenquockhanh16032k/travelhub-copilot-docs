@@ -100,3 +100,28 @@ jobs:
         run: |
           docker build -f deploy/Dockerfile.pc-tunnel -t travelhub-pc-edge:ci .
           docker build -f deploy/Dockerfile.admin-tunnel -t travelhub-admin-edge:ci .
+
+  mini-controller:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile Python and validate runner script
+        run: |
+          python -m py_compile travelhub-mini-controller/server.py
+          bash -n travelhub-mini-controller/run.sh
+      - name: Smoke test local-only dashboard and reject unauthenticated mutations
+        run: |
+          python travelhub-mini-controller/server.py > /tmp/travelhub-controller-test.log 2>&1 &
+          panel_pid=$!
+          trap 'kill "$panel_pid" || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8765/ -o /tmp/travelhub-panel.html; then break; fi
+            sleep 1
+          done
+          grep -q 'TravelHub' /tmp/travelhub-panel.html
+          curl -fsS http://127.0.0.1:8765/api/status | grep -q 'tunnels'
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8765/api/action/stop-all)
+          test "$status" = "403"
