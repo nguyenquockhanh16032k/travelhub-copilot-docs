@@ -27,6 +27,38 @@ services:
       - /tmp
     cap_drop:
       - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    security_opt:
+      - no-new-privileges:true
+
+  admin-web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.admin-tunnel
+    restart: unless-stopped
+    init: true
+    expose:
+      - "8081"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - default
+      - tunnel_edge
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
     security_opt:
       - no-new-privileges:true
 
