@@ -77,3 +77,7 @@ Internal application for authorized company staff.
 - `types/`: shared TypeScript contracts.
 - `composables/`: reusable composition logic.
 - `utils/`: formatting and helpers.
+
+## Tour Import / Export UI (feature branch)
+
+The **Tours** screen shows an Import/Export panel for ADMIN and SUPER_ADMIN. A user can choose CSV or XLSX, export tours, download the template, upload a file, preview valid/invalid rows, then explicitly confirm creation. Imports create draft tour records only and do not touch departures/bookings/payments. Staff has backend read-only export permission but no bulk-import button or write access. See `docs/12_IMPORT_EXPORT_USER_GUIDE.md`.
