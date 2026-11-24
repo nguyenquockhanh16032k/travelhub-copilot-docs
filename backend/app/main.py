@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.auth import router as auth_router
 from app.api.v1.catalog import router as catalog_router
+from app.api.v1.tour_bulk import router as tour_bulk_router
 from app.api.v1.customers import router as customers_router
 from app.api.v1.bookings import router as bookings_router
 from app.api.v1.dashboard import router as dashboard_router
@@ -53,6 +54,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(catalog_router, prefix="/api/v1")
+app.include_router(tour_bulk_router, prefix="/api/v1")
 app.include_router(customers_router, prefix="/api/v1")
 app.include_router(bookings_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
