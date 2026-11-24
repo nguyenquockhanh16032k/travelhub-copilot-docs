@@ -204,3 +204,16 @@ exception resolution remain future policy decisions.
 - Test overbooking concurrency against PostgreSQL using
   `docker-compose.test.yml` and the documented integration-test command.
 - Generate and inspect OpenAPI documentation.
+
+## Admin Tour CSV/XLSX Bulk Import/Export (feature branch)
+
+Routes require `tours:read` for export and `tours:write` for import:
+
+- `GET /admin/tours/bulk/export?format=xlsx|csv&template=false`
+- `POST /admin/tours/bulk/import?preview=true|false` with multipart field `file`
+
+The file requires headers `title,slug,description,duration_days,destination` in this exact order. Import uses `TourCreate` validation, creates **drafts only**, rejects duplicate slugs (including existing ones) and is atomic for invalid rows. Limit: 2 MiB and 500 data rows per import; export limit 10,000 tours. Each created tour writes a `tour.bulk_imported` audit event. Formula-like exported values are escaped. No migration is needed. No bulk update, departures or payment mutation is implemented.
+
+Dependencies: `openpyxl==3.1.5` and `python-multipart==0.0.20`.
+
+See `docs/12_IMPORT_EXPORT_USER_GUIDE.md` for the operator workflow and safety constraints. Tests/build pending; do not deploy without verification.
