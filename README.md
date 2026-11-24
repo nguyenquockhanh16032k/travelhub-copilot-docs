@@ -191,3 +191,14 @@ Import/Export is pending PR-specific CI; see the pull request checks before merg
 **Có domain trên Cloudflare:** xem [hướng dẫn Named Tunnel](./docs/14_PC_CLOUDFLARE_TUNNEL.md). Không chạy named tunnel bằng `docker compose up cloudflared` nếu đang dùng Quick Tunnel.
 
 Đây là thử nghiệm, không phải production; giữ Cloudflare OTP, data test và backup PostgreSQL.
+
+## Mini dashboard điều khiển Docker (Local / Public)
+
+Đã có sẵn mini app trong [`travelhub-mini-controller/`](./travelhub-mini-controller/README.md). Sau khi `git pull`, mở Ubuntu WSL:
+
+```bash
+cd /mnt/c/Users/Khanh/Desktop/ANY/travelhub-copilot-docs/travelhub-mini-controller
+python3 server.py
+```
+
+Sau đó mở **http://localhost:8765** trên Windows và bấm nút Build Local, Build Public, Check, Public User/Admin hoặc Stop. Không cần cài Python packages, không cần copy ZIP. Chỉ mở panel trên PC, **không đưa cổng 8765 lên Internet**. Các nút Public tạo Quick Tunnel thử nghiệm có email OTP; cần test OTP trước khi chia sẻ và backup dữ liệu trước khi deploy.
