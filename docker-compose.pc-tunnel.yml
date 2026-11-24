@@ -61,10 +61,6 @@ services:
       - SETGID
     security_opt:
       - no-new-privileges:true
-    cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
 
   cloudflared:
     image: cloudflare/cloudflared:latest
