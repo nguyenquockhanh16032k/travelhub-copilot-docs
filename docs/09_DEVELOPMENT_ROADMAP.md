@@ -160,3 +160,7 @@ production services have been started. See
 deployment prerequisites and
 [07_WINDOWS10_WSL2_DOCKER.md](./07_WINDOWS10_WSL2_DOCKER.md) for local runtime
 and backup/restore guidance.
+
+## Pending review – Tour Import/Export
+
+A feature branch adds create-only Draft tour import and export using CSV/XLSX, admin UI, row validation, preview, audit events, backend tests and an operator guide. This is **not yet verified by the full test suite or production build**. Do not merge or deploy before checks pass. Other entities (departures, customers, articles, guides, suppliers, finance reports) remain outside this increment. See `docs/12_IMPORT_EXPORT_USER_GUIDE.md`.
